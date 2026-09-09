@@ -7,14 +7,19 @@ diagrams:
     type: class
 
     glob:
-      - "*.cpp"
-      - "*.hpp"
-      - "src/**/*.cpp"
+      - "lib/*.hpp"
+      - "src/*.cpp"
       - "src/**/*.hpp"
 
     include:
       paths:
-        - .
+        - lib
+        - src
+      
+      relationships:
+        - inheritance
+        - friendship
+        - dependency
 
     exclude:
       namespaces:
@@ -26,5 +31,6 @@ diagrams:
 
     plantuml:
       before:
+        - "!pragma layout elk"
         - "skinparam classAttributeIconSize 0"
         - "top to bottom direction"

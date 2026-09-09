@@ -3,24 +3,25 @@
 
 #include "constants.hpp"
 #include <cmath>
+#include <ostream>
 
 enum class Scale { TT, TAI, UTC, UT1, TCG, TCB, TDB };
 
-template <class TimeT, Scale S> class TimeBase;
+template <class TimeT, Scale Sc> class TimeBase;
 
 template <class T>
 concept TimeClass = requires {
-  []<class U, Scale S>(const TimeBase<U, S> &) {}(std::declval<const T &>());
+  []<class U, Scale Sc>(const TimeBase<U, Sc> &) {}(std::declval<const T &>());
 };
 
-template <class T, Scale S>
-concept same_scale = TimeClass<T> && (T::scale == S);
+template <class T, Scale Sc>
+concept same_scale = TimeClass<T> && (T::scale == Sc);
 
-template <typename TimeT, Scale S>
+template <typename TimeT, Scale Sc>
 class TimeBase // base time behaviour
 {
 public:
-  static constexpr Scale scale = S;
+  static constexpr Scale scale = Sc;
 
 protected:
   double jdInt_;
@@ -31,7 +32,7 @@ protected:
     this->normalize();
   }
   template <TimeClass RT>
-  TimeBase(const TimeBase<RT, S> &T) noexcept
+  TimeBase(const TimeBase<RT, Sc> &T) noexcept
       : jdInt_(T.jdInt()), jdFrac_(T.jdFrac()) {}
 
   void normalize() noexcept {
@@ -43,7 +44,7 @@ protected:
   }
 
   template <TimeClass RT>
-    requires(same_scale<RT, S>)
+    requires(same_scale<RT, Sc>)
   TimeBase &operator+=(const RT &T) noexcept {
     this->jdInt_ += T.jdInt();
     this->jdFrac_ += T.jdFrac();
@@ -52,7 +53,7 @@ protected:
   }
 
   template <TimeClass RT>
-    requires(same_scale<RT, S>)
+    requires(same_scale<RT, Sc>)
   TimeBase &operator-=(const RT &T) noexcept {
     this->jdInt_ -= T.jdInt();
     this->jdFrac_ -= T.jdFrac();
@@ -77,17 +78,22 @@ public:
   double jdFrac() const noexcept { return jdFrac_; };
 
   auto operator<=>(const TimeBase &rhs) const noexcept = default;
+
+  friend std::ostream &operator<<(std::ostream &os, const TimeBase &T) {
+    os << "S:" << (int)scale << "jd:" << T.jdFrac() + T.jdInt();
+    return os;
+  }
 };
 
-template <Scale S> class Time;
+template <Scale Sc> class Time;
 
-template <Scale S> class TimeDelta : public TimeBase<TimeDelta<S>, S> {
+template <Scale Sc> class TimeDelta : public TimeBase<TimeDelta<Sc>, Sc> {
 public:
   TimeDelta(double jdInt = 0, double jdFrac = 0) noexcept
-      : TimeBase<TimeDelta, S>(jdInt, jdFrac) {}
+      : TimeBase<TimeDelta, Sc>(jdInt, jdFrac) {}
   template <TimeClass RT>
-    requires(same_scale<RT, S>)
-  TimeDelta(const TimeBase<RT, S> &T) noexcept : TimeBase<TimeDelta, S>(T) {}
+    requires(same_scale<RT, Sc>)
+  TimeDelta(const TimeBase<RT, Sc> &T) noexcept : TimeBase<TimeDelta, Sc>(T) {}
 
   // template <Scale S2> TimeDelta operator+=(const Time<S2> &T) = delete;
   // template <Scale S2> TimeDelta operator-=(const Time<S2> &T) = delete;
@@ -100,15 +106,15 @@ public:
   }
 
   template <TimeClass RT>
-    requires(same_scale<RT, S>)
-  friend RT operator+(const TimeDelta &lhs, const RT &rhs) noexcept
+    requires(same_scale<RT, Sc>)
+  RT operator+(const RT &rhs) const noexcept
     requires(!std::same_as<RT, TimeDelta>)
   {
-    return rhs + lhs;
+    return rhs + (*this);
   }
 
   template <TimeClass RT>
-    requires(same_scale<RT, S>)
+    requires(same_scale<RT, Sc>)
   friend RT operator-(const RT &lhs, const TimeDelta &rhs) noexcept {
     RT res(lhs);
     res -= rhs;
@@ -116,12 +122,12 @@ public:
   }
 
   TimeDelta &operator+=(const TimeDelta &D) noexcept {
-    TimeBase<TimeDelta, S>::operator+=(D);
+    TimeBase<TimeDelta, Sc>::operator+=(D);
     return *this;
   }
 
   TimeDelta &operator-=(const TimeDelta &D) noexcept {
-    TimeBase<TimeDelta, S>::operator-=(D);
+    TimeBase<TimeDelta, Sc>::operator-=(D);
     return *this;
   }
 
@@ -158,34 +164,34 @@ public:
   }
 };
 
-template <Scale S> class Time : public TimeBase<Time<S>, S> {
+template <Scale Sc> class Time : public TimeBase<Time<Sc>, Sc> {
 public:
   Time(double jdInt = 0, double jdFrac = 0) noexcept
-      : TimeBase<Time<S>, S>(jdInt, jdFrac) {}
+      : TimeBase<Time<Sc>, Sc>(jdInt, jdFrac) {}
 
-  Time &operator+=(const TimeDelta<S> &D) noexcept {
-    TimeBase<Time, S>::operator+=(D);
+  Time &operator+=(const TimeDelta<Sc> &D) noexcept {
+    TimeBase<Time, Sc>::operator+=(D);
     return *this;
   }
 
-  Time &operator-=(const TimeDelta<S> &D) noexcept {
-    TimeBase<Time, S>::operator-=(D);
+  Time &operator-=(const TimeDelta<Sc> &D) noexcept {
+    TimeBase<Time, Sc>::operator-=(D);
     return *this;
   }
 
-  Time operator-(const TimeDelta<S> &rhs) const noexcept {
+  Time operator-(const TimeDelta<Sc> &rhs) const noexcept {
     Time res(*this);
     res -= rhs;
     return res;
   }
 
   auto operator-(const Time &rhs) const noexcept {
-    TimeDelta<S> res(*this);
-    res -= TimeDelta<S>(rhs);
+    TimeDelta<Sc> res(*this);
+    res -= TimeDelta<Sc>(rhs);
     return res;
   }
 
-  Time operator+(const TimeDelta<S> &rhs) const noexcept {
+  Time operator+(const TimeDelta<Sc> &rhs) const noexcept {
     Time res(*this);
     res += rhs;
     return res;
