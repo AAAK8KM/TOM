@@ -1,0 +1,30 @@
+compilation_database_dir: build
+
+output_directory: diagrams
+
+diagrams:
+  class_tree:
+    type: class
+
+    glob:
+      - "*.cpp"
+      - "*.hpp"
+      - "src/**/*.cpp"
+      - "src/**/*.hpp"
+
+    include:
+      paths:
+        - .
+
+    exclude:
+      namespaces:
+        - std
+
+    generate_packages: false
+    generate_method_arguments: full
+    generate_concept_requirements: yes
+
+    plantuml:
+      before:
+        - "skinparam classAttributeIconSize 0"
+        - "top to bottom direction"
