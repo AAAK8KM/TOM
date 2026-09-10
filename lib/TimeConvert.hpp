@@ -13,16 +13,21 @@ struct rebind_s<T<OldS>, NewS> {
 template <TimeClass T, Scale NewS>
 using rebind = typename rebind_s<T, NewS>::type;
 
-template <TimeClass T> class convert {
+template <Scale Sc, TimeClass T> rebind<T, Sc> convert(const T &Time) noexcept;
+
+template <TimeClass T> class autoconvert {
 protected:
   T TimeIn_;
 
 public:
-  convert(const T &TimeIn) : TimeIn_(TimeIn) {};
+  autoconvert(const T &Time) : TimeIn_(Time) {};
   template <Scale Sc> operator rebind<T, Sc>() noexcept {
-    // Convert template logic
-    return {};
+    return convert<Sc>(TimeIn_);
   }
+  autoconvert(const autoconvert &) = delete;
+  autoconvert(autoconvert &&) = delete;
+  autoconvert &operator=(const autoconvert &) = delete;
+  autoconvert &operator=(autoconvert &&) = delete;
 };
 
 #endif
