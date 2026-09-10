@@ -24,30 +24,28 @@ public:
   static constexpr Scale scale = Sc;
 
 protected:
-  double jdInt_;
-  double jdFrac_;
+  double jd1_;
+  double jd2_;
 
-  TimeBase(double jdInt = 0, double jdFrac = 0) noexcept
-      : jdInt_(jdInt), jdFrac_(jdFrac) {
+  TimeBase(double jd1 = 0, double jd2 = 0) noexcept : jd1_(jd1), jd2_(jd2) {
     this->normalize();
   }
   template <TimeClass RT>
-  TimeBase(const TimeBase<RT, Sc> &T) noexcept
-      : jdInt_(T.jdInt()), jdFrac_(T.jdFrac()) {}
+  TimeBase(const TimeBase<RT, Sc> &T) noexcept : jd1_(T.jd1()), jd2_(T.jd2()) {}
 
   void normalize() noexcept {
     double tmp;
-    jdFrac_ += std::modf(jdInt_, &tmp);
-    jdInt_ = tmp;
-    jdFrac_ = std::modf(jdFrac_, &tmp);
-    jdInt_ += tmp;
+    jd2_ += std::modf(jd1_, &tmp);
+    jd1_ = tmp;
+    jd2_ = std::modf(jd2_, &tmp);
+    jd1_ += tmp;
   }
 
   template <TimeClass RT>
     requires(same_scale<RT, Sc>)
   TimeBase &operator+=(const RT &T) noexcept {
-    this->jdInt_ += T.jdInt();
-    this->jdFrac_ += T.jdFrac();
+    this->jd1_ += T.jd1();
+    this->jd2_ += T.jd2();
     this->normalize();
     return *this;
   }
@@ -55,32 +53,32 @@ protected:
   template <TimeClass RT>
     requires(same_scale<RT, Sc>)
   TimeBase &operator-=(const RT &T) noexcept {
-    this->jdInt_ -= T.jdInt();
-    this->jdFrac_ -= T.jdFrac();
+    this->jd1_ -= T.jd1();
+    this->jd2_ -= T.jd2();
     this->normalize();
     return *this;
   }
 
   TimeBase &operator+=(const double &seconds) noexcept {
-    this->jdFrac_ += seconds / secondsInDay;
+    this->jd2_ += seconds / secondsInDay;
     this->normalize();
     return *this;
   }
 
   TimeBase &operator-=(const double &seconds) noexcept {
-    this->jdFrac_ -= seconds / secondsInDay;
+    this->jd2_ -= seconds / secondsInDay;
     this->normalize();
     return *this;
   }
 
 public:
-  double jdInt() const noexcept { return jdInt_; };
-  double jdFrac() const noexcept { return jdFrac_; };
+  double jd1() const noexcept { return jd1_; };
+  double jd2() const noexcept { return jd2_; };
 
   auto operator<=>(const TimeBase &rhs) const noexcept = default;
 
   friend std::ostream &operator<<(std::ostream &os, const TimeBase &T) {
-    os << "S:" << (int)scale << "jd:" << T.jdFrac() + T.jdInt();
+    os << "S:" << (int)scale << "jd:" << T.jd2() + T.jd1();
     return os;
   }
 };
@@ -89,8 +87,8 @@ template <Scale Sc> class Time;
 
 template <Scale Sc> class TimeDelta : public TimeBase<TimeDelta<Sc>, Sc> {
 public:
-  TimeDelta(double jdInt = 0, double jdFrac = 0) noexcept
-      : TimeBase<TimeDelta, Sc>(jdInt, jdFrac) {}
+  TimeDelta(double jd1 = 0, double jd2 = 0) noexcept
+      : TimeBase<TimeDelta, Sc>(jd1, jd2) {}
   template <TimeClass RT>
     requires(same_scale<RT, Sc>)
   TimeDelta(const TimeBase<RT, Sc> &T) noexcept : TimeBase<TimeDelta, Sc>(T) {}
@@ -132,15 +130,15 @@ public:
   }
 
   TimeDelta &operator*=(const double &d) noexcept {
-    this->jdInt_ *= d;
-    this->jdFrac_ *= d;
+    this->jd1_ *= d;
+    this->jd2_ *= d;
     this->normalize();
     return *this;
   }
 
   TimeDelta &operator/=(const double &d) noexcept {
-    this->jdInt_ /= d;
-    this->jdFrac_ /= d;
+    this->jd1_ /= d;
+    this->jd2_ /= d;
     this->normalize();
     return *this;
   }
@@ -166,8 +164,8 @@ public:
 
 template <Scale Sc> class Time : public TimeBase<Time<Sc>, Sc> {
 public:
-  Time(double jdInt = 0, double jdFrac = 0) noexcept
-      : TimeBase<Time<Sc>, Sc>(jdInt, jdFrac) {}
+  Time(double jd1 = 0, double jd2 = 0) noexcept
+      : TimeBase<Time<Sc>, Sc>(jd1, jd2) {}
 
   Time &operator+=(const TimeDelta<Sc> &D) noexcept {
     TimeBase<Time, Sc>::operator+=(D);
