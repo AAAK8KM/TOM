@@ -5,8 +5,6 @@
 #include <cmath>
 #include <ostream>
 
-enum class Scale { TT, TAI, UTC, UT1, TCG, TCB, TDB };
-
 template <class TimeT, Scale Sc> class TimeBase;
 
 template <class T>
