@@ -18,10 +18,13 @@ static constexpr std::array<uint8_t, 7> convgr =
 }; // formater breaks table
 
 template <Scale To>
-uint64_t consteval conv_resolve_p(uint8_t From, uint8_t visited = 0) {
+uint32_t consteval conv_resolve_p(uint8_t From, uint8_t visited = 0) {
+  constexpr uint8_t shift = 31;
   if (To == (Scale)From)
-    return 1ULL << From;
-  uint64_t path = 1ULL << 63;
+    return 0; // ULL << From;
+  if (std::popcount(visited) > 4)
+    return 1ULL << shift;
+  uint64_t path = 1ULL << shift;
   visited = visited | (1ULL << From);
   for (uint8_t i = 0; i < 7; i++) {
     uint64_t mask = 1 << i;
@@ -31,8 +34,8 @@ uint64_t consteval conv_resolve_p(uint8_t From, uint8_t visited = 0) {
     if (mask < path)
       path = mask;
   }
-  if (path == (1ULL << 63))
-    return 1ULL << 63;
+  if (path == (1ULL << shift))
+    return 1ULL << shift;
   return (path << 8) + (1ULL << From);
 }
 
@@ -48,18 +51,31 @@ struct cat_tp<std::tuple<A...>, std::tuple<B...>> {
 template <class Tp, class Tnext>
 using cat_op = typename cat_tp<Tp, Tnext>::type;
 
+template <Scale... Sc> struct op_seq {};
+
+template <class T, Scale B> struct op_seq_add_s;
+
+template <Scale B, Scale... A> struct op_seq_add_s<op_seq<A...>, B> {
+  using type = op_seq<A..., B>;
+};
+
+template <class A, Scale B> using seq_add = typename op_seq_add_s<A, B>::type;
+
 template <Scale To, Scale From, uint64_t path = 0>
 auto consteval conv_resolve_op() {
   if constexpr (path == 0)
     return conv_resolve_op<To, From, conv_resolve_p<To>((uint8_t)From)>();
   else {
-    constexpr Scale Sto = (Scale)std::countr_zero(path >> 8),
-                    Sfrom = (Scale)std::countr_zero(path);
-    if constexpr (path < (1ULL << 16))
-      return std::tuple<b_conv_op<To, Sfrom>>();
+    constexpr Scale // Sto = (Scale)std::countr_zero(path >> 8),
+        Sfrom = (Scale)std::countr_zero(path);
+    if constexpr (path < (1ULL << 8))
+      // return std::tuple<b_conv_op<To, Sfrom>>();
+      return op_seq<To, Sfrom>{};
     else
-      return cat_op<std::tuple<b_conv_op<Sto, Sfrom>>,
-                    decltype(conv_resolve_op<To, Sfrom, (path >> 8)>())>();
+      // return cat_op<std::tuple<b_conv_op<Sto, Sfrom>>,
+      //              decltype(conv_resolve_op<To, Sfrom, (path >> 8)>())>();
+      return seq_add<decltype(conv_resolve_op<To, Sfrom, (path >> 8)>()),
+                     Sfrom>();
   }
 }
 
