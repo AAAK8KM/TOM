@@ -16,9 +16,12 @@ using rebind = typename rebind_s<T, NewS>::type;
 
 template <class T>
 concept TimeDeltaHandler =
-    requires(T delta, double d, Time<Scale::TT> T1, Time<Scale::TDB> T2) {
-      { delta.dut(d) } -> std::same_as<double>;
-      { delta.dttut(d) } -> std::same_as<double>;
+    requires(T delta, Time<Scale::UTC> TU, Time<Scale::UT1> TUT1,
+             Time<Scale::TT> T1, Time<Scale::TDB> T2) {
+      { delta.dut(TU) } -> std::same_as<double>;
+      { delta.dut(TUT1) } -> std::same_as<double>;
+      { delta.dttut(T1) } -> std::same_as<double>;
+      { delta.dttut(TUT1) } -> std::same_as<double>;
       { delta.dtdb(T1) } -> std::same_as<double>;
       { delta.dtdb(T2) } -> std::same_as<double>;
     };
@@ -38,20 +41,20 @@ private:
     return convert<Scs...>(T);
   };
 
-  template <TimeClass T> class autoconvert {
+  template <TimeClass T> class autoconvert_t {
   protected:
     const T &TimeIn_;
     const Converter &cv;
 
   public:
-    autoconvert(const T &Time) : TimeIn_(Time) {};
+    autoconvert_t(const T &Time, const Converter &cv) : TimeIn_(Time) {};
     template <Scale Sc> operator rebind<T, Sc>() noexcept {
       return cv.convert<Sc>(TimeIn_);
     }
-    autoconvert(const autoconvert &) = delete;
-    autoconvert(autoconvert &&) = delete;
-    autoconvert &operator=(const autoconvert &) = delete;
-    autoconvert &operator=(autoconvert &&) = delete;
+    autoconvert_t(const autoconvert_t &) = delete;
+    autoconvert_t(autoconvert_t &&) = delete;
+    autoconvert_t &operator=(const autoconvert_t &) = delete;
+    autoconvert_t &operator=(autoconvert_t &&) = delete;
   };
 
 public:
@@ -93,14 +96,14 @@ public:
 
     // UTC -> UT1
     else if constexpr (To == Scale::UT1 && From == Scale::UTC) {
-      iauUtcut1(Time.jd1(), Time.jd2(), delts_.dut(Time.jd1), &jd1, &jd2);
+      iauUtcut1(Time.jd1(), Time.jd2(), delts_.dut(Time), &jd1, &jd2);
 
       return {jd1, jd2};
     }
 
     // UT1 -> UTC
     else if constexpr (To == Scale::UTC && From == Scale::UT1) {
-      iauUt1utc(Time.jd1(), Time.jd2(), delts_.dut(Time.jd1), &jd1, &jd2);
+      iauUt1utc(Time.jd1(), Time.jd2(), delts_.dut(Time), &jd1, &jd2);
 
       return {jd1, jd2};
     }
@@ -158,6 +161,12 @@ public:
     } else {
       return convert<To, From>(Time, conv_resolve_op<To, From>());
     }
+  }
+
+  template <Scale From, template <Scale> class Tc>
+    requires(TimeClass<Tc<From>>)
+  autoconvert_t<Tc<From>> autoconvert(Tc<From> T) {
+    return autoconvert_t(T, *this);
   }
 };
 
