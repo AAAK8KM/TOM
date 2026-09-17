@@ -39,7 +39,7 @@ uint32_t consteval conv_resolve_p(uint8_t From, uint8_t visited = 0) {
   return (path << 8) + (1ULL << From);
 }
 
-template <Scale To, Scale From> struct b_conv_op {};
+/*template <Scale To, Scale From> struct b_conv_op {};
 
 template <class A, class B> struct cat_tp;
 
@@ -49,7 +49,7 @@ struct cat_tp<std::tuple<A...>, std::tuple<B...>> {
 };
 
 template <class Tp, class Tnext>
-using cat_op = typename cat_tp<Tp, Tnext>::type;
+using cat_op = typename cat_tp<Tp, Tnext>::type;*/
 
 template <Scale... Sc> struct op_seq {};
 
