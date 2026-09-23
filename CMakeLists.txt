@@ -9,5 +9,9 @@ set(COMPILE_FLAGS -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversi
 
 include(./include_sofa.cmake)
 
+enable_testing()
+include(./include_gtest.cmake)
+
 include_directories(lib)
 add_subdirectory(src)
+add_subdirectory(tests)

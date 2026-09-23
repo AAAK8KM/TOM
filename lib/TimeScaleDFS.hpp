@@ -18,16 +18,16 @@ static constexpr std::array<uint8_t, 7> convgr =
 }; // formater breaks table
 
 template <Scale To>
-uint32_t consteval conv_resolve_p(uint8_t From, uint8_t visited = 0) {
+uint64_t consteval conv_resolve_p(uint8_t From, uint8_t visited = 0) {
   constexpr uint8_t shift = 31;
   if (To == (Scale)From)
     return 0; // ULL << From;
   if (std::popcount(visited) > 4)
     return 1ULL << shift;
   uint64_t path = 1ULL << shift;
-  visited = visited | (1ULL << From);
+  visited = visited | (uint8_t)(1U << From);
   for (uint8_t i = 0; i < 7; i++) {
-    uint64_t mask = 1 << i;
+    uint64_t mask = 1ULL << i;
     if ((mask & visited) || !(mask & convgr[From]))
       continue;
     mask = conv_resolve_p<To>(i, visited);

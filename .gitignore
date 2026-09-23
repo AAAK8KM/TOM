@@ -1,2 +1,4 @@
 build/
 diagrams/
+.cache
+.serena

@@ -3,6 +3,7 @@
 
 #include "Time.hpp"
 #include "TimeScaleDFS.hpp"
+#include <sofa.h>
 
 template <class T, Scale NewS> struct rebind_s;
 
@@ -16,40 +17,46 @@ using rebind = typename rebind_s<T, NewS>::type;
 
 template <class T>
 concept TimeDeltaHandler =
-    requires(T delta, Time<Scale::UTC> TU, Time<Scale::UT1> TUT1,
-             Time<Scale::TT> T1, Time<Scale::TDB> T2) {
-      { delta.dut(TU) } -> std::same_as<double>;
+    requires(T delta, Time<Scale::UTC> TUTC, Time<Scale::UT1> TUT1,
+             Time<Scale::TT> TTT, Time<Scale::TDB> TTDB) {
+      { delta.dut(TUTC) } -> std::same_as<double>;
       { delta.dut(TUT1) } -> std::same_as<double>;
-      { delta.dttut(T1) } -> std::same_as<double>;
+      { delta.dttut(TTT) } -> std::same_as<double>;
       { delta.dttut(TUT1) } -> std::same_as<double>;
-      { delta.dtdb(T1) } -> std::same_as<double>;
-      { delta.dtdb(T2) } -> std::same_as<double>;
+      { delta.dtdb(TTT) } -> std::same_as<double>;
+      { delta.dtdb(TTDB) } -> std::same_as<double>;
     };
 
 template <TimeDeltaHandler D> class Converter {
 private:
-  template <Scale To, Scale Middle, Scale... MiddleT, Scale From,
-            template <Scale> class Tc>
+  template <Scale To, Scale Next, Scale... Rest, template <Scale> class Tc,
+            Scale From>
     requires(TimeClass<Tc<From>>)
-  Tc<To> convert(const Tc<From> &T) {
-    return convert<To>(convert<Middle, MiddleT...>(T));
+  Tc<To> convert_chain(const Tc<From> &T) const {
+    if constexpr (sizeof...(Rest) == 0)
+      return convert<To>(convert<Next>(T));
+    else
+      return convert<To>(convert_chain<Next, Rest...>(T));
   };
 
   template <Scale To, Scale From, Scale... Scs, template <Scale> class Tc>
     requires(TimeClass<Tc<From>>)
-  Tc<To> convert(const Tc<From> &T, op_seq<Scs...>) {
-    return convert<Scs...>(T);
+  Tc<To> convert_seq(const Tc<From> &T, op_seq<Scs...>) const {
+    return convert_chain<Scs...>(T);
   };
 
-  template <TimeClass T> class autoconvert_t {
+  template <template <Scale> class Tc, Scale From>
+    requires(TimeClass<Tc<From>>)
+  class autoconvert_t {
   protected:
-    const T &TimeIn_;
-    const Converter &cv;
+    const Tc<From> &TimeIn_;
+    const Converter &cv_;
 
   public:
-    autoconvert_t(const T &Time, const Converter &cv) : TimeIn_(Time) {};
-    template <Scale Sc> operator rebind<T, Sc>() noexcept {
-      return cv.convert<Sc>(TimeIn_);
+    autoconvert_t(const Tc<From> &TimeIn, const Converter &cv) noexcept
+        : TimeIn_(TimeIn), cv_(cv) {};
+    template <Scale To> operator Tc<To>() const noexcept {
+      return cv_.template convert<To>(TimeIn_);
     }
     autoconvert_t(const autoconvert_t &) = delete;
     autoconvert_t(autoconvert_t &&) = delete;
@@ -63,7 +70,7 @@ public:
   Converter(D &&delts) : delts_(delts) {}
   template <Scale To, Scale From, template <Scale> class Tc>
     requires(TimeClass<Tc<From>>)
-  Tc<To> convert(const Tc<From> &Time) {
+  Tc<To> convert(const Tc<From> &Time) const {
     double jd1, jd2;
 
     if constexpr (To == From) {
@@ -110,14 +117,14 @@ public:
 
     // TT -> UT1
     else if constexpr (To == Scale::UT1 && From == Scale::TT) {
-      iauTtut1(Time.jd1(), Time.jd2(), delts_.dttut(Time.jd1), &jd1, &jd2);
+      iauTtut1(Time.jd1(), Time.jd2(), delts_.dttut(Time), &jd1, &jd2);
 
       return {jd1, jd2};
     }
 
     // UT1 -> TT
     else if constexpr (To == Scale::TT && From == Scale::UT1) {
-      iauUt1tt(Time.jd1(), Time.jd2(), delts_.dttut(Time.jd1), &jd1, &jd2);
+      iauUt1tt(Time.jd1(), Time.jd2(), delts_.dttut(Time), &jd1, &jd2);
 
       return {jd1, jd2};
     }
@@ -159,14 +166,14 @@ public:
       iauTcbtdb(Time.jd1(), Time.jd2(), &jd1, &jd2);
       return {jd1, jd2};
     } else {
-      return convert<To, From>(Time, conv_resolve_op<To, From>());
+      return convert_seq<To, From>(Time, conv_resolve_op<To, From>());
     }
   }
 
   template <Scale From, template <Scale> class Tc>
     requires(TimeClass<Tc<From>>)
-  autoconvert_t<Tc<From>> autoconvert(Tc<From> T) {
-    return autoconvert_t(T, *this);
+  autoconvert_t<Tc, From> autoconvert(const Tc<From> &T) const noexcept {
+    return autoconvert_t<Tc, From>(T, *this);
   }
 };
 
