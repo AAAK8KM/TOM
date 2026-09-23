@@ -3,6 +3,7 @@
 
 add_executable(unit_tests
   test_delta_handler.cpp
+  test_time_arith.cpp
   test_time_convert.cpp)
 
 target_compile_options(unit_tests PRIVATE ${COMPILE_FLAGS})
