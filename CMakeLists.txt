@@ -11,9 +11,15 @@ include(./include_sofa.cmake)
 include(./include_eigen.cmake)
 include(./include_calceph.cmake)
 
+option(ORBMECH_WITH_IERS "Build the libcurl IERS Bulletin B adapter" OFF)
+
 enable_testing()
 include(./include_gtest.cmake)
 
 add_subdirectory(lib)
 add_subdirectory(src)
 add_subdirectory(tests)
+
+if(ORBMECH_WITH_IERS)
+  add_subdirectory(adapter)
+endif()
