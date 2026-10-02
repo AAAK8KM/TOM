@@ -26,7 +26,7 @@ protected:
   double jd2_;
 
   TimeBase(double jd1 = 0, double jd2 = 0) noexcept : jd1_(jd1), jd2_(jd2) {
-    this->normalize();
+    normalize();
   }
   template <TimeClass RT>
   TimeBase(const TimeBase<RT, Sc> &T) noexcept : jd1_(T.jd1()), jd2_(T.jd2()) {}
@@ -42,36 +42,37 @@ protected:
   template <TimeClass RT>
     requires(same_scale<RT, Sc>)
   TimeBase &operator+=(const RT &T) noexcept {
-    this->jd1_ += T.jd1();
-    this->jd2_ += T.jd2();
-    this->normalize();
+    jd1_ += T.jd1();
+    jd2_ += T.jd2();
+    normalize();
     return *this;
   }
 
   template <TimeClass RT>
     requires(same_scale<RT, Sc>)
   TimeBase &operator-=(const RT &T) noexcept {
-    this->jd1_ -= T.jd1();
-    this->jd2_ -= T.jd2();
-    this->normalize();
+    jd1_ -= T.jd1();
+    jd2_ -= T.jd2();
+    normalize();
     return *this;
   }
 
   TimeBase &operator+=(const double &seconds) noexcept {
-    this->jd2_ += seconds / secondsInDay;
-    this->normalize();
+    jd2_ += seconds / secondsInDay;
+    normalize();
     return *this;
   }
 
   TimeBase &operator-=(const double &seconds) noexcept {
-    this->jd2_ -= seconds / secondsInDay;
-    this->normalize();
+    jd2_ -= seconds / secondsInDay;
+    normalize();
     return *this;
   }
 
 public:
   double jd1() const noexcept { return jd1_; };
   double jd2() const noexcept { return jd2_; };
+  double jd() const noexcept { return jd1_ + jd2_; }
 
   auto operator<=>(const TimeBase &rhs) const noexcept = default;
 

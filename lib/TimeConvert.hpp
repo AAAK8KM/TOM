@@ -161,7 +161,7 @@ public:
       return {jd1, jd2};
     }
 
-    // TCB -> TDB
+    // auto convert
     else if constexpr (To == Scale::TDB && From == Scale::TCB) {
       iauTcbtdb(Time.jd1(), Time.jd2(), &jd1, &jd2);
       return {jd1, jd2};

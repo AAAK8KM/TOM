@@ -1,6 +1,6 @@
-#include "DeltaHandler.hpp"
 #include "Time.hpp"
 #include "TimeConvert.hpp"
+#include "TransformParametrs.hpp"
 #include "constants.hpp"
 
 #include <gtest/gtest.h>
@@ -16,8 +16,7 @@ constexpr double j2000 = 2451545.0;
 TEST(DummyDelta, DefaultsAreReported) {
   const DummyDelta d;
 
-  EXPECT_DOUBLE_EQ(d.dut(Time<Scale::UTC>(j2000, 0.0)),
-                   DummyDelta::defaultDut);
+  EXPECT_DOUBLE_EQ(d.dut(Time<Scale::UTC>(j2000, 0.0)), DummyDelta::defaultDut);
   EXPECT_DOUBLE_EQ(d.dttut(Time<Scale::TT>(j2000, 0.0)),
                    DummyDelta::defaultDttut);
   EXPECT_DOUBLE_EQ(d.dtdb(Time<Scale::TT>(j2000, 0.0)),
