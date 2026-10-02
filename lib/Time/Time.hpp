@@ -1,5 +1,5 @@
-#ifndef time_hpp__
-#define time_hpp__
+#ifndef time_time_hpp__
+#define time_time_hpp__
 
 #include "constants.hpp"
 #include <cmath>
@@ -73,6 +73,8 @@ public:
   double jd1() const noexcept { return jd1_; };
   double jd2() const noexcept { return jd2_; };
   double jd() const noexcept { return jd1_ + jd2_; }
+
+  double mjd() const noexcept { return (jd1_ - mjdZero) + jd2_; }
 
   auto operator<=>(const TimeBase &rhs) const noexcept = default;
 

@@ -1,8 +1,10 @@
-#ifndef eop_hpp__
-#define eop_hpp__
+#ifndef eop_eop_hpp__
+#define eop_eop_hpp__
 
-#include <Eigen/Core>
 #include <cmath>
+#include <concepts>
+#include <cstddef>
+#include <utility>
 
 struct DailyEOP {
   double mjd;

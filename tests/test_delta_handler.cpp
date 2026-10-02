@@ -1,6 +1,8 @@
-#include "Time.hpp"
-#include "TimeConvert.hpp"
-#include "TransformParametrs.hpp"
+#include "EOP/Containers.hpp"
+#include "EOP/EOP.hpp"
+#include "Time/Converter.hpp"
+#include "Time/Time.hpp"
+#include "Time/Transform.hpp"
 #include "constants.hpp"
 
 #include <gtest/gtest.h>
@@ -77,4 +79,70 @@ TEST(DummyDelta, DeltasAreAcceptedAsWellAsTimes) {
   EXPECT_DOUBLE_EQ(d.dtdb(TimeDelta<Scale::TDB>(1.0, 0.0)), 0.001);
 }
 
+
+// EOPTimeDelta reads a table indexed by MJD in UTC, and reports every offset
+// in seconds, the units SOFA takes.
+class EOPTimeDeltaTest : public ::testing::Test {
+protected:
+  // Two days around J2000, UT1 - UTC stepping 0.1 s a day.
+  EOPTimeDeltaTest() : table_(51544.0, 3) {
+    table_[0] = DailyEOP{51544.0, 0.1, 0, 0};
+    table_[1] = DailyEOP{51545.0, 0.2, 0, 0};
+    table_[2] = DailyEOP{51546.0, 0.3, 0, 0};
+  }
+
+  static constexpr double ttUtc = 32.184 + 37.0;
+
+  EOPVector table_;
+};
+
+TEST_F(EOPTimeDeltaTest, DutIsLookedUpByMjdNotJd) {
+  const EOP<EOPVector> eop(table_);
+  const EOPTimeDelta<EOP<EOPVector>> d(eop);
+
+  // J2000 is MJD 51544.5, halfway between the first two rows.
+  EXPECT_DOUBLE_EQ(d.dut(Time<Scale::UTC>(j2000, 0.0)), 0.15);
+  EXPECT_DOUBLE_EQ(d.dut(Time<Scale::UTC>(j2000, 0.25)), 0.175);
+}
+
+// TT - UT1 = (TT - UTC) - (UT1 - UTC), so it runs a touch under 69.184 s here.
+TEST_F(EOPTimeDeltaTest, DttutIsTtMinusUt1InSeconds) {
+  const EOP<EOPVector> eop(table_);
+  const EOPTimeDelta<EOP<EOPVector>> d(eop);
+
+  const Time<Scale::TT> tt(j2000, 0.0);
+  const double utcMjd = tt.mjd() - ttUtc / secondsInDay;
+  const double dut = 0.1 + 0.1 * (utcMjd - 51544.0);
+
+  EXPECT_NEAR(d.dttut(tt), ttUtc - dut, 1e-12);
+  EXPECT_LT(d.dttut(tt), ttUtc);
+}
+
+// The UT1 branch has to find the UTC of the instant before it can read the
+// table, so it agrees with the UTC branch to well inside a microsecond.
+TEST_F(EOPTimeDeltaTest, Ut1BranchAgreesWithTheUtcBranch) {
+  const EOP<EOPVector> eop(table_);
+  const EOPTimeDelta<EOP<EOPVector>> d(eop);
+
+  const Time<Scale::UTC> utc(j2000, 0.0);
+  const double dut = d.dut(utc);
+  const Time<Scale::UT1> ut1(j2000, dut / secondsInDay);
+
+  EXPECT_NEAR(d.dut(ut1), dut, 1e-9);
+  EXPECT_NEAR(d.dttut(ut1), ttUtc - dut, 1e-9);
+}
+
+TEST_F(EOPTimeDeltaTest, SatisfiesTheConverterConcept) {
+  static_assert(TimeDeltaHandler<EOPTimeDelta<EOP<EOPVector>>>);
+
+  const EOP<EOPVector> eop(table_);
+  const EOPTimeDelta<EOP<EOPVector>> delta(eop);
+  const Converter<EOPTimeDelta<EOP<EOPVector>>> cv(delta);
+
+  const Time<Scale::UTC> utc(j2000, 0.0);
+  const auto ut1 = cv.convert<Scale::UT1>(utc);
+
+  EXPECT_NEAR((ut1.jd1() - utc.jd1() + ut1.jd2() - utc.jd2()) * secondsInDay,
+              0.15, 1e-6);
+}
 } // namespace

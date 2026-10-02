@@ -1,6 +1,6 @@
-#include "DeltaHandler.hpp"
-#include "Time.hpp"
-#include "TimeConvert.hpp"
+#include "Time/Transform.hpp"
+#include "Time/Time.hpp"
+#include "Time/Converter.hpp"
 #include "constants.hpp"
 
 #include <gtest/gtest.h>

@@ -1,5 +1,5 @@
-#include "Time.hpp"
-#include "TimeScaleDFS.hpp"
+#include "Time/Time.hpp"
+#include "Time/TimeScaleDFS.hpp"
 #include "constants.hpp"
 #include <iostream>
 #include <ranges>

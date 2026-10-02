@@ -1,7 +1,7 @@
-#ifndef eopstandart_hpp__
-#define eopstandart_hpp__
+#ifndef eop_containers_hpp__
+#define eop_containers_hpp__
 
-#include "EOP.hpp"
+#include "EOP/EOP.hpp"
 
 #include <array>
 #include <cstddef>

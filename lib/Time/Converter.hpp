@@ -1,8 +1,8 @@
-#ifndef timeconvert_hpp__
-#define timeconvert_hpp__
+#ifndef time_converter_hpp__
+#define time_converter_hpp__
 
-#include "Time.hpp"
-#include "TimeScaleDFS.hpp"
+#include "Time/Time.hpp"
+#include "Time/TimeScaleDFS.hpp"
 #include <sofa.h>
 
 template <class T, Scale NewS> struct rebind_s;

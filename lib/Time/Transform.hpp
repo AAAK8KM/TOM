@@ -1,44 +1,52 @@
-#ifndef deltahandler_hpp__
-#define deltahandler_hpp__
+#ifndef time_transform_hpp__
+#define time_transform_hpp__
 
-#include "EOP.hpp"
-#include "Time.hpp"
+#include "EOP/EOP.hpp"
+#include "Time/Time.hpp"
 #include "constants.hpp"
 
 template <EOPC DC> class EOPTimeDelta {
 private:
   const DC &eop_;
-  static constexpr double defaultDttutc =
-      (32.184 + 37.0) / secondsInDay; // TT - TAI + TAI - UTC
+  // TT - UTC, seconds, outside a leap second: TT - TAI plus TAI - UTC.
+  static constexpr double defaultDttutc = 32.184 + 37.0;
 
 public:
   EOPTimeDelta(const DC &eop) : eop_(eop) {}
 
+  // UT1 - UTC, seconds. EOP is tabulated against MJD in UTC.
   template <TimeClass T>
     requires(same_scale<T, Scale::UTC>)
   double dut(const T &time) const noexcept {
-    return eop_.dut(time.jd());
+    return eop_.dut(time.mjd());
   }
 
-  template <TimeClass T>
-    requires(same_scale<T, Scale::TT>)
-  double dttut(const T &time) const noexcept {
-    return eop_.dut(time.jd() - defaultDttutc) + defaultDttutc;
-  }
-
+  // UT1 - UTC, seconds, for a time already in UT1. The table is indexed by
+  // UTC, so the UTC of the same instant is found by iteration; dut moves by
+  // under a second, so a handful of passes settle it.
   template <TimeClass T>
     requires(same_scale<T, Scale::UT1>)
   double dut(const T &time) const noexcept {
-    T temp = time;
+    const double ut1 = time.mjd();
+    double utc = ut1;
     for (int i = 0; i < 10; i++)
-      temp = time - eop_.dut(temp.jd());
-    return eop_.dut(temp.jd());
+      utc = ut1 - eop_.dut(utc) / secondsInDay;
+    return eop_.dut(utc);
+  }
+
+  // TT - UT1, seconds. TT - UT1 = (TT - UTC) - (UT1 - UTC), and the UTC of
+  // the instant is TT shifted back by TT - UTC.
+  template <TimeClass T>
+    requires(same_scale<T, Scale::TT>)
+  double dttut(const T &time) const noexcept {
+    const double utc = time.mjd() - defaultDttutc / secondsInDay;
+    return defaultDttutc - eop_.dut(utc);
   }
 
   template <TimeClass T>
     requires(same_scale<T, Scale::UT1>)
   double dttut(const T &time) const noexcept {
-    return dut(time) + defaultDttutc;
+    return defaultDttutc - dut(time);
   }
 
   template <TimeClass T>

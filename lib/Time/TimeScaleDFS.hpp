@@ -1,5 +1,5 @@
-#ifndef timescaledfs_hpp__
-#define timescaledfs_hpp__
+#ifndef time_timescaledfs_hpp__
+#define time_timescaledfs_hpp__
 
 #include "constants.hpp"
 #include <array>

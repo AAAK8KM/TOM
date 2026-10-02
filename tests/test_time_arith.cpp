@@ -1,4 +1,4 @@
-#include "Time.hpp"
+#include "Time/Time.hpp"
 #include "constants.hpp"
 
 #include <gtest/gtest.h>
@@ -167,5 +167,27 @@ TEST(DeltaArith, Ordering) {
 
   EXPECT_LT(shorter, longer);
   EXPECT_EQ(shorter, D(0.0, 0.25));
+}
+
+// MJD is what the EOP tables are indexed by, so it is taken off jd1, which
+// carries the whole days, with the fraction added back afterwards.
+TEST(Mjd, J2000IsFiftyOneFiveFourFourPointFive) {
+  const T t(j2000, 0.0);
+
+  EXPECT_DOUBLE_EQ(t.mjd(), 51544.5);
+  EXPECT_DOUBLE_EQ(t.mjd(), t.jd() - mjdZero);
+}
+
+TEST(Mjd, FollowsTheFraction) {
+  const T t(j2000, 0.25);
+
+  EXPECT_DOUBLE_EQ(t.mjd(), 51544.75);
+}
+
+TEST(Mjd, KeepsTheSmallPartOfTheSplit) {
+  const T t(j2000, 1e-9);
+
+  EXPECT_DOUBLE_EQ(t.mjd(), 51544.5 + 1e-9);
+  EXPECT_NEAR(t.mjd() - 51544.5, 1e-9, 1e-11);
 }
 } // namespace
